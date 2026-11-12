@@ -1,0 +1,36 @@
+services:
+  api-node:
+    build:
+      context: ./api-node
+      dockerfile: Dockerfile
+    container_name: matrix-api-node
+    environment:
+      PORT: 3002
+    ports:
+      - "3002:3002"
+    restart: unless-stopped
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://localhost:3002/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  api-go:
+    build:
+      context: ./api-go
+      dockerfile: Dockerfile
+    container_name: matrix-api-go
+    environment:
+      PORT: 3001
+      STATISTICS_API_URL: http://api-node:3002/api/v1/statistics
+    ports:
+      - "3001:3001"
+    depends_on:
+      api-node:
+        condition: service_healthy
+    restart: unless-stopped
